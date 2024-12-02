@@ -15,6 +15,7 @@ public class GameBoard extends JPanel{
     private Snake snake;
     private Point food;
     private boolean gameOver;
+    private int foodEaten;
 
     private static final int WIDTH = 600;
     private static final int HEIGHT = 600;
@@ -29,6 +30,7 @@ public class GameBoard extends JPanel{
         snake = new Snake();
         generateFood();
         gameOver = false;
+        foodEaten = 0;
 
         addKeyListener(new KeyAdapter() {
             @Override
@@ -160,6 +162,7 @@ public class GameBoard extends JPanel{
         if (snake.getBody().getFirst().equals(food)){
             snake.grow();
             generateFood();
+            foodEaten++;
         }
     }
 
@@ -172,7 +175,11 @@ public class GameBoard extends JPanel{
             Font gameOverFont = new Font("Arial", Font.BOLD, 20);
             g.setFont(gameOverFont);
             g.setColor(Color.RED);
-            g.drawString("Game Over!", WIDTH / 2 - 90, HEIGHT / 2);
+            g.drawString("Game Over!", WIDTH / 2 - 80, HEIGHT / 2);
+
+            g.setColor(Color.GREEN);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString("Algorithm Score: " + foodEaten, WIDTH / 2 - 80, HEIGHT / 2 + 20);
             return;
         }
 
@@ -183,5 +190,10 @@ public class GameBoard extends JPanel{
 
         g.setColor(Color.RED);
         g.fillRect(food.x * SIZE, food.y * SIZE, SIZE, SIZE);
+
+        g.setColor(Color.WHITE);
+        Font counterFont = new Font("Arial", Font.BOLD, 14);
+        g.setFont(counterFont);
+        g.drawString("Food: " + foodEaten, 10, 20); // Display food counter
     }
 }

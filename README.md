@@ -1,0 +1,1 @@
+This is still a work in progress, during the late stages of the snake game the snake will sometimes freak out. However for the most part the snake will always make it to late game using my A* algorithm

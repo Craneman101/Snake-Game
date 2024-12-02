@@ -1,12 +1,22 @@
 package com.snakegame;
 
 import java.util.Objects;
-
+/**
+ * Represents a node in the grid for pathfinding.
+ */
 public class Node implements Comparable<Node> {
+    //Data fields
     public int x, y;
     public int g, h;
     public Node parent;
 
+    //Constructor
+    /**
+     * Constructs a Node object with specified coordinates.
+     *
+     * @param x The x-coordinate of the node.
+     * @param y The y-coordinate of the node.
+     */
     public Node(int x, int y) {
         this.x = x;
         this.y = y;
@@ -15,6 +25,11 @@ public class Node implements Comparable<Node> {
         this.parent = null;
     }
 
+    /**
+     * Calculates the total cost (f = g + h) for the node.
+     *
+     * @return The total cost.
+     */
     public int getF() {
         return g + h;
     }
@@ -27,6 +42,7 @@ public class Node implements Comparable<Node> {
         return (this.y == node.y) && (this.x == node.x);
     }
 
+    @Override
     public int hashCode() {
         return Objects.hash(this.x, this.y);
     }

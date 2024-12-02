@@ -7,7 +7,11 @@ import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Handles the main game logic and rendering of the Snake game.
+ */
 public class GameBoard extends JPanel{
+    //Data fields
     private Snake snake;
     private Point food;
     private boolean gameOver;
@@ -16,6 +20,10 @@ public class GameBoard extends JPanel{
     private static final int HEIGHT = 600;
     private static final int SIZE = 20; //Size of each block
 
+    //Constructor
+    /**
+     * Initializes the game board, snake, and food.
+     */
     public GameBoard(){
         setPreferredSize(new Dimension(WIDTH,HEIGHT));
         snake = new Snake();
@@ -41,6 +49,9 @@ public class GameBoard extends JPanel{
         requestFocusInWindow();
     }
 
+    /**
+     * Generates a new food position that does not overlap with the snake's body.
+     */
     public void generateFood(){
         Random rand = new Random();
         boolean foodPositionValid = false;
@@ -70,6 +81,11 @@ public class GameBoard extends JPanel{
         food = newFood;
     }
 
+    /**
+     * Creates a grid representing the game board.
+     *
+     * @return A 2D array where 1 indicates obstacles and 0 indicates walkable spaces.
+     */
     public int[][] createGrid(){
         int rows = HEIGHT / SIZE;
         int cols = WIDTH / SIZE;
@@ -81,6 +97,11 @@ public class GameBoard extends JPanel{
         return grid;
     }
 
+    /**
+     * Computes the next move for the snake using the A* algorithm.
+     *
+     * @return The next position for the snake's head, or null if no valid move exists.
+     */
     public Point computeNextMove(){
         int[][] grid = createGrid();
         Point head = snake.getBody().getFirst();
@@ -97,6 +118,9 @@ public class GameBoard extends JPanel{
         return new Point(nextStep.x, nextStep.y);
     }
 
+    /**
+     * Updates the game state, including snake movement, collision checks, and food consumption.
+     */
     public void updateGame(){
         if (gameOver) return;
 
@@ -111,6 +135,9 @@ public class GameBoard extends JPanel{
         repaint();
     }
 
+    /**
+     * Checks if the snake has collided with the board edges or itself.
+     */
     private void checkCollisions(){
         Point head = snake.getBody().getFirst();
 
@@ -126,6 +153,9 @@ public class GameBoard extends JPanel{
         }
     }
 
+    /**
+     * Checks if the snake has eaten the food, grows the snake, and generates new food if true.
+     */
     private void checkFood(){
         if (snake.getBody().getFirst().equals(food)){
             snake.grow();

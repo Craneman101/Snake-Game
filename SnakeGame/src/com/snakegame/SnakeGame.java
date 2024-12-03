@@ -28,7 +28,7 @@ public class SnakeGame extends JFrame{
             while (true){
                 gameBoard.updateGame();
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(10);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

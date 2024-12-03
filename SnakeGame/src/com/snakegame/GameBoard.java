@@ -6,6 +6,8 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
 /**
  * Handles the main game logic and rendering of the Snake game.
@@ -16,6 +18,7 @@ public class GameBoard extends JPanel{
     private Point food;
     private boolean gameOver;
     private int foodEaten;
+    private boolean trapped;
 
     private static final int WIDTH = 600;
     private static final int HEIGHT = 600;
@@ -31,6 +34,7 @@ public class GameBoard extends JPanel{
         generateFood();
         gameOver = false;
         foodEaten = 0;
+        trapped = false;
 
         addKeyListener(new KeyAdapter() {
             @Override
@@ -112,12 +116,43 @@ public class GameBoard extends JPanel{
 
         List<Node> path = AStar.initializeGrid(grid, start, goal, snake.getBody());
 
-        if (path.isEmpty() || path.size() < 2){
-            return null;
+        if (!path.isEmpty() || path.size() >= 2){
+            trapped = false; // Found a valid path, no longer trapped
+            Point nextMove = new Point(path.get(1).x, path.get(1).y);
+            return new Point(nextMove.x, nextMove.y);
         }
+        //Using fallback if no path found
+        trapped = true;
+        return fallbackMove(grid, head);
+    }
 
-        Node nextStep = path.get(1);
-        return new Point(nextStep.x, nextStep.y);
+
+    /**
+     * Computes a fallback move to keep the snake alive when trapped
+     *
+     * @param grid The game grid with obsticals
+     * @param head The current head position of the snake
+     * @return The next move to keep the snake alive, or null if no valid move exists
+     */
+    private Point fallbackMove(int[][] grid, Point head){
+        List<Point> safeMoves = new ArrayList<>();
+        int[][] DIRECTIONS = {
+                {0, 1},  // Right
+                {1, 0},  // Down
+                {0, -1}, // Left
+                {-1, 0}  // Up
+        };
+        for (int[] dir : DIRECTIONS){
+            int newX = head.x + dir[0];
+            int newY = head.y + dir[1];
+            if (AStar.isWalkable(grid, newX, newY) && !AStar.isSelfCollision(newX, newY, snake.getBody())) {
+                safeMoves.add(new Point(newX, newY));
+            }
+        }
+        if (!safeMoves.isEmpty()) {
+            return safeMoves.getFirst();
+        }
+        return null;
     }
 
     /**
@@ -179,8 +214,15 @@ public class GameBoard extends JPanel{
 
             g.setColor(Color.GREEN);
             g.setFont(new Font("Arial", Font.BOLD, 16));
-            g.drawString("Algorithm Score: " + foodEaten, WIDTH / 2 - 80, HEIGHT / 2 + 20);
+            g.drawString("Algorithm Score: " + foodEaten, WIDTH / 2 - 95, HEIGHT / 2 + 20);
             return;
+        }
+
+        if (trapped) {
+            g.setColor(Color.YELLOW);
+            Font warningFont = new Font("Arial", Font.BOLD, 16);
+            g.setFont(warningFont);
+            g.drawString("Warning: Snake is trapped!", WIDTH / 2 - 80, 40);
         }
 
         g.setColor(Color.GREEN);

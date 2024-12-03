@@ -60,8 +60,8 @@ public class Snake{
      * Grows the snake by adding a new segment at the current tail position.
      */
     public void grow(){
-        Point head = body.getFirst();
-        body.addFirst(head);
+        Point tail = body.getLast();
+        body.addLast(new Point(tail.x, tail.y));
     }
 
     /**

@@ -9,6 +9,8 @@ import java.util.Random;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import static com.snakegame.AStar.prioritizeDirections;
+
 /**
  * Handles the main game logic and rendering of the Snake game.
  */
@@ -20,9 +22,10 @@ public class GameBoard extends JPanel{
     private int foodEaten;
     private boolean trapped;
 
-    private static final int WIDTH = 600;
-    private static final int HEIGHT = 600;
+    private static final int WIDTH = 400;
+    private static final int HEIGHT = 400;
     private static final int SIZE = 20; //Size of each block
+    private static final int LONGESTPATHLENGTH = 20;
 
     //Constructor
     /**
@@ -114,45 +117,73 @@ public class GameBoard extends JPanel{
         Node start = new Node(head.x, head.y);
         Node goal = new Node(food.x, food.y);
 
-        List<Node> path = AStar.initializeGrid(grid, start, goal, snake.getBody());
+        if (foodEaten > LONGESTPATHLENGTH) {
+            List<Node> longestPath = AStar.findLongestPath(grid, start, goal, snake.getBody(), food);
+            if (!longestPath.isEmpty() && longestPath.size() >= 2) {
+                trapped = false; // Longest path found
+                return new Point(longestPath.get(1).x, longestPath.get(1).y);
+            }
+        }
+        // Check reachable area from snake's current head
+        if (!hasValidWayOut(grid, head)) {
+            trapped = true; // No guaranteed way out
+            return fallbackMove(grid, head);
+        }
+        List<Node> path = AStar.initializeGrid(grid, start, goal, snake.getBody(), food);
 
         if (!path.isEmpty() || path.size() >= 2){
             trapped = false; // Found a valid path, no longer trapped
-            Point nextMove = new Point(path.get(1).x, path.get(1).y);
-            return new Point(nextMove.x, nextMove.y);
+            return new Point(path.get(1).x, path.get(1).y);
         }
+
         //Using fallback if no path found
         trapped = true;
         return fallbackMove(grid, head);
     }
 
+    /**
+     * Determines if there is a valid way out for the snake.
+     *
+     * @param grid The game grid with obstacles.
+     * @param head The current head position of the snake.
+     * @return True if there is a reachable area large enough for the snake, false otherwise.
+     */
+    private boolean hasValidWayOut(int[][] grid, Point head) {
+        // Use flood-fill to find the reachable area from the snake's head
+        int reachableArea = AStar.reachableArea(grid, head, snake.getBody(), food);
+        return reachableArea > snake.getBody().size(); // Ensure reachable area is larger than the snake
+    }
 
     /**
      * Computes a fallback move to keep the snake alive when trapped
      *
-     * @param grid The game grid with obsticals
+     * @param grid The game grid with obstacles
      * @param head The current head position of the snake
      * @return The next move to keep the snake alive, or null if no valid move exists
      */
     private Point fallbackMove(int[][] grid, Point head){
-        List<Point> safeMoves = new ArrayList<>();
-        int[][] DIRECTIONS = {
-                {0, 1},  // Right
-                {1, 0},  // Down
-                {0, -1}, // Left
-                {-1, 0}  // Up
-        };
-        for (int[] dir : DIRECTIONS){
+        Point bestMove = null;
+        int maxArea = -1;
+        int[][] prioritizedDirs = prioritizeDirections(head, food);
+
+        for (int[] dir : prioritizedDirs) {
             int newX = head.x + dir[0];
             int newY = head.y + dir[1];
+
             if (AStar.isWalkable(grid, newX, newY) && !AStar.isSelfCollision(newX, newY, snake.getBody())) {
-                safeMoves.add(new Point(newX, newY));
+                LinkedList<Point> tempSnakeBody = new LinkedList<>(snake.getBody());
+                tempSnakeBody.addFirst(new Point(newX, newY));
+                tempSnakeBody.removeLast();
+
+                int area = AStar.reachableArea(grid, new Point(newX, newY), tempSnakeBody, food);
+                if (area > maxArea) {
+                    maxArea = area;
+                    bestMove = new Point(newX, newY);
+                }
             }
         }
-        if (!safeMoves.isEmpty()) {
-            return safeMoves.getFirst();
-        }
-        return null;
+
+        return bestMove;
     }
 
     /**

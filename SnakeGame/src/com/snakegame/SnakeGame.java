@@ -1,6 +1,8 @@
 package com.snakegame;
 
 import javax.swing.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 /**
  * The main class for the Snake game.
@@ -9,6 +11,7 @@ import javax.swing.*;
 public class SnakeGame extends JFrame{
     //Data fields
     private GameBoard gameBoard;
+    private int gameSpeed = 100; // Initial game speed in milliseconds
 
     //Constructor
     /**
@@ -23,12 +26,27 @@ public class SnakeGame extends JFrame{
         add(gameBoard);
         pack();
 
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    // Speed up the game (decrease delay)
+                    if (gameSpeed > 10) {
+                        gameSpeed -= 10;
+                    }
+                } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    // Slow down the game (increase delay)
+                    gameSpeed += 10;
+                }
+            }
+        });
+        setFocusable(true);
         //Game Loop
         Thread gameThread = new Thread(() -> {
             while (true){
                 gameBoard.updateGame();
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(gameSpeed);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

@@ -8,7 +8,7 @@ import java.util.LinkedList;
  */
 public class Snake{
     //Data fields
-    private LinkedList<Point> body; //Body of the snake represented as a list of points
+    public static LinkedList<Point> body; //Body of the snake represented as a list of points
     private int direction; //Direction we want our snake to move
 
     public static final int UP = 0;

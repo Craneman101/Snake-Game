@@ -8,6 +8,9 @@ import java.awt.Point;
  */
 public class AStar{
 
+    // Cache for reachable areas and heuristics
+    private static Map<Point, Integer> reachableCache = new HashMap<>();
+    private static Map<Point, Integer> heuristicCache = new HashMap<>();
     //Constructor
     /**
      * Finds the shortest path using A* from the start node to the goal node, considering obstacles.
@@ -23,19 +26,16 @@ public class AStar{
         Set<Node> closedSet = new HashSet<>();
         start.g = 0;
         start.h = heuristic(start.x, start.y, goal.x, goal.y, grid, snakeBody, food);
-        openSet.add(start); // Add the start node to the open set
-
-        Map<Node, Integer> heuristicCache = new HashMap<>(); // Cache heuristic results
+        openSet.add(start);
 
         while (!openSet.isEmpty()) {
-            Node current = openSet.poll(); // Extract node with lowest f
+            Node current = openSet.poll();
             if (current.equals(goal)) {
-                return reconstructPath(current); // Goal reached, reconstruct path
+                return reconstructPath(current);
             }
 
             closedSet.add(current);
 
-            // Check neighbors
             for (int[] direction : prioritizeDirections(Snake.body.getFirst(), food)) {
                 int newX = current.x + direction[0];
                 int newY = current.y + direction[1];
@@ -104,9 +104,16 @@ public class AStar{
      * @param y2 The y-coordinate of the second point.
      * @return The Manhattan distance.
      */
-    public static int heuristic(int x1, int y1, int x2, int y2, int[][] grid, LinkedList<Point> snakeBody, Point food) {        int manhattan = Math.abs(x1 - x2) + Math.abs(y1 - y2);
-        int area = reachableArea(grid, new Point(x1, y1), snakeBody, food);
-        return manhattan - area; // Reward paths with larger reachable areas
+    public static int heuristic(int x1, int y1, int x2, int y2, int[][] grid, LinkedList<Point> snakeBody, Point food) {
+        Point point = new Point(x1, y1);
+        if (heuristicCache.containsKey(point)) {
+            return heuristicCache.get(point);
+        }
+        int manhattan = Math.abs(x1 - x2) + Math.abs(y1 - y2);
+        int area = reachableArea(grid, point, snakeBody, food);
+        int result = manhattan - area; // Reward paths with larger reachable areas
+        heuristicCache.put(point, result);
+        return result;
     }
 
     /**
@@ -136,14 +143,6 @@ public class AStar{
         Collections.reverse(path);
         return path;
     }
-
-    /**
-     * Finds the longest path from start to goal, ensuring there is always a way out.
-     *
-     * @param grid      2D grid representing the game board.
-     * @param head     The starting node (snake's head).
-     * @return A list of nodes representing the longest path, or an empty list if no path exists,
-     */
     /**
      * Calculates the reachable area from a given point using flood-fill.
      *
@@ -153,6 +152,9 @@ public class AStar{
      * @return The number of reachable cells from the start point.
      */
     public static int reachableArea(int[][] grid, Point start, LinkedList<Point> snakeBody, Point food) {
+        if (reachableCache.containsKey(start)) {
+            return reachableCache.get(start);
+        }
         boolean[][] visited = new boolean[grid.length][grid[0].length];
         Queue<Point> queue = new LinkedList<>();
         queue.add(start);
@@ -172,6 +174,8 @@ public class AStar{
                 }
             }
         }
+
+        reachableCache.put(start, area);
         return area;
     }
 
@@ -182,6 +186,7 @@ public class AStar{
      * @param start     The starting node (snake's head).
      * @param goal      The target node (food).
      * @param snakeBody The snake's body, used to avoid collisions.
+     * @param food      The position of the food on the grid.
      * @return A list of nodes representing the longest path, or an empty list if no path exists.
      */
     public static List<Node> findLongestPath(int[][] grid, Node start, Node goal, LinkedList<Point> snakeBody, Point food) {
@@ -223,5 +228,39 @@ public class AStar{
             }
         }
         return new ArrayList<>();
+    }
+
+    /**
+     * Calculates the reachable area from a given point using flood-fill and returns it as a set of points.
+     *
+     * @param grid      2D grid representing the game board.
+     * @param start     The starting point.
+     * @param snakeBody The snake's body, used to avoid collisions.
+     * @param food      The position of the food on the grid.
+     * @return A set of points representing the reachable area from the start point.
+     */
+    public static Set<Point> reachableAreaSet(int[][] grid, Point start, LinkedList<Point> snakeBody, Point food) {
+        boolean[][] visited = new boolean[grid.length][grid[0].length];
+        Queue<Point> queue = new LinkedList<>();
+        Set<Point> area = new HashSet<>();
+
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            Point current = queue.poll();
+            if (visited[current.y][current.x]) continue;
+            visited[current.y][current.x] = true;
+            area.add(current);
+
+            for (int[] direction : prioritizeDirections(Snake.body.getFirst(), food)) {
+                int newX = current.x + direction[0];
+                int newY = current.y + direction[1];
+                if (isWalkable(grid, newX, newY) && !visited[newY][newX] && !isSelfCollision(newX, newY, snakeBody)) {
+                    queue.add(new Point(newX, newY));
+                }
+            }
+        }
+
+        return area;
     }
 }

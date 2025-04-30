@@ -4,10 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
-import java.util.ArrayList;
-import java.util.LinkedList;
 
 import static com.snakegame.AStar.prioritizeDirections;
 
@@ -16,6 +14,7 @@ import static com.snakegame.AStar.prioritizeDirections;
  */
 public class GameBoard extends JPanel{
     //Data fields
+    private static final boolean DEBUG_MODE = false;
     private Snake snake;
     private Point food;
     private boolean gameOver;
@@ -25,7 +24,7 @@ public class GameBoard extends JPanel{
     private static final int WIDTH = 400;
     private static final int HEIGHT = 400;
     private static final int SIZE = 20; //Size of each block
-    private static final int LONGESTPATHLENGTH = 20;
+    private static final int LONGESTPATHLENGTH = 30;
 
     //Constructor
     /**
@@ -111,36 +110,59 @@ public class GameBoard extends JPanel{
      *
      * @return The next position for the snake's head, or null if no valid move exists.
      */
-    public Point computeNextMove(){
+    public Point computeNextMove() {
         int[][] grid = createGrid();
         Point head = snake.getBody().getFirst();
         Node start = new Node(head.x, head.y);
         Node goal = new Node(food.x, food.y);
 
+        List<Node> pathToFood = AStar.initializeGrid(grid, start, goal, snake.getBody(), food);
+
+        if (pathToFood != null && pathToFood.size() >= 2) {
+            Point nextStep = new Point(pathToFood.get(1).x, pathToFood.get(1).y);
+
+            // Simulate snake after next move
+            LinkedList<Point> simulatedSnake = new LinkedList<>(snake.getBody());
+            simulatedSnake.addFirst(nextStep);
+            simulatedSnake.removeLast(); // simulate movement
+
+            int[][] simulatedGrid = createGridFromBody(simulatedSnake);
+            Point newHead = nextStep;
+            Point tail = snake.getBody().getLast(); // simulate tail movement
+
+            boolean tailReachable = AStar.reachableAreaSet(simulatedGrid, newHead, simulatedSnake, tail).contains(tail);
+
+            if (tailReachable) {
+                trapped = false;
+                return nextStep;
+            }
+        }
+        // Otherwise fallback to safe longest path or safety move
         if (foodEaten > LONGESTPATHLENGTH) {
             List<Node> longestPath = AStar.findLongestPath(grid, start, goal, snake.getBody(), food);
             if (!longestPath.isEmpty() && longestPath.size() >= 2) {
-                trapped = false; // Longest path found
+                trapped = false;
                 return new Point(longestPath.get(1).x, longestPath.get(1).y);
             }
         }
-        // Check reachable area from snake's current head
-        if (!hasValidWayOut(grid, head)) {
-            trapped = true; // No guaranteed way out
-            return fallbackMove(grid, head);
-        }
-        List<Node> path = AStar.initializeGrid(grid, start, goal, snake.getBody(), food);
 
-        if (!path.isEmpty() || path.size() >= 2){
-            trapped = false; // Found a valid path, no longer trapped
-            return new Point(path.get(1).x, path.get(1).y);
-        }
-
-        //Using fallback if no path found
         trapped = true;
         return fallbackMove(grid, head);
     }
-
+    /**
+     * Generates a new grid based on a temporary or simulated snake body.
+     * Helps visualize future states for planning moves safely.
+     *
+     * @param body The simulated snake body.
+     * @return A 2D grid with snake body parts marked as obstacles.
+     */
+    private int[][] createGridFromBody(List<Point> body) {
+        int[][] grid = new int[HEIGHT / SIZE][WIDTH / SIZE];
+        for (Point p : body) {
+            grid[p.y][p.x] = 1;
+        }
+        return grid;
+    }
     /**
      * Determines if there is a valid way out for the snake.
      *
@@ -161,7 +183,7 @@ public class GameBoard extends JPanel{
      * @param head The current head position of the snake
      * @return The next move to keep the snake alive, or null if no valid move exists
      */
-    private Point fallbackMove(int[][] grid, Point head){
+    private Point fallbackMove(int[][] grid, Point head) {
         Point bestMove = null;
         int maxArea = -1;
         int[][] prioritizedDirs = prioritizeDirections(head, food);
@@ -175,14 +197,14 @@ public class GameBoard extends JPanel{
                 tempSnakeBody.addFirst(new Point(newX, newY));
                 tempSnakeBody.removeLast();
 
-                int area = AStar.reachableArea(grid, new Point(newX, newY), tempSnakeBody, food);
+                Set<Point> areaSet = AStar.reachableAreaSet(grid, new Point(newX, newY), tempSnakeBody, food);
+                int area = areaSet.size();
                 if (area > maxArea) {
                     maxArea = area;
                     bestMove = new Point(newX, newY);
                 }
             }
         }
-
         return bestMove;
     }
 
@@ -268,5 +290,13 @@ public class GameBoard extends JPanel{
         Font counterFont = new Font("Arial", Font.BOLD, 14);
         g.setFont(counterFont);
         g.drawString("Food: " + foodEaten, 10, 20); // Display food counter
+
+        if (DEBUG_MODE) {
+            Set<Point> reachable = AStar.reachableAreaSet(createGrid(), Snake.body.getFirst(), Snake.body, food);
+            g.setColor(new Color(100, 200, 100, 100)); // semi-transparent green
+            for (Point p : reachable) {
+                g.fillRect(p.x * SIZE, p.y * SIZE, SIZE, SIZE);
+            }
+        }
     }
 }
